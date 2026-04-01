@@ -1,120 +1,32 @@
 package server
 
 var dashboardHTML = []byte(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stockyard Grubstake</title>
-<style>
-  :root {
-    --bg: #1a1410;
-    --surface: #241c15;
-    --border: #3d2e1e;
-    --rust: #c4622d;
-    --leather: #8b5e3c;
-    --cream: #f5e6c8;
-    --muted: #7a6550;
-    --text: #e8d5b0;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace, sans-serif; min-height: 100vh; }
-  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; }
-  .logo { color: var(--rust); font-size: 1.25rem; font-weight: 700; letter-spacing: 0.05em; }
-  .badge { background: var(--rust); color: var(--cream); font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
-  main { max-width: 960px; margin: 2rem auto; padding: 0 2rem; }
-  .hero { text-align: center; padding: 3rem 0 2rem; }
-  .hero h1 { font-size: 2rem; color: var(--cream); margin-bottom: 0.5rem; }
-  .hero p { color: var(--muted); font-size: 0.95rem; max-width: 480px; margin: 0 auto; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
-  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem; text-align: center; }
-  .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--rust); }
-  .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem; margin-bottom: 1rem; }
-  .card h2 { font-size: 1rem; color: var(--cream); margin-bottom: 1rem; }
-  .tier-box { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .tier { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1rem; }
-  .tier.pro { border-color: var(--rust); }
-  .tier-name { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.5rem; }
-  .tier.pro .tier-name { color: var(--rust); }
-  .tier-desc { font-size: 0.85rem; color: var(--text); }
-  .tier-price { font-size: 0.8rem; color: var(--leather); margin-top: 0.5rem; }
-  footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.75rem; }
-  footer a { color: var(--leather); text-decoration: none; }
-  .endpoint-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-  .endpoint-table th { text-align: left; color: var(--muted); padding: 0.5rem; border-bottom: 1px solid var(--border); }
-  .endpoint-table td { padding: 0.5rem; border-bottom: 1px solid var(--border); color: var(--text); }
-  .method { color: var(--rust); font-weight: 600; }
-</style>
-</head>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Stockyard Grubstake</title><style>:root{--bg:#1a1410;--surface:#241c15;--border:#3d2e1e;--rust:#c4622d;--cream:#f5e6c8;--muted:#7a6550;--text:#e8d5b0}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace,sans-serif}header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;gap:1rem}.logo{color:var(--rust);font-size:1.25rem;font-weight:700}.badge{background:var(--rust);color:var(--cream);font-size:0.65rem;padding:0.2rem 0.5rem;border-radius:3px;font-weight:600;text-transform:uppercase}main{max-width:1100px;margin:0 auto;padding:2rem}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem}.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:1.25rem;text-align:center}.stat-value{font-size:1.75rem;font-weight:700;color:var(--rust)}.stat-label{font-size:0.75rem;color:var(--muted);margin-top:0.25rem;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:1.5rem;margin-bottom:1rem}.card h2{font-size:0.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem}.full{grid-column:1/-1}.form-row{display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap}select,input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.5rem 0.75rem;border-radius:4px;font-family:inherit;font-size:0.85rem;flex:1}.btn{background:var(--rust);color:var(--cream);border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-family:inherit;font-size:0.85rem;font-weight:600}.btn:hover{opacity:0.85}.btn-sm{padding:0.25rem 0.6rem;font-size:0.75rem}.btn-danger{background:#7a2020}table{width:100%;border-collapse:collapse;font-size:0.82rem}th{text-align:left;color:var(--muted);padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.75rem;text-transform:uppercase}td{padding:0.5rem;border-bottom:1px solid var(--border)}.empty{color:var(--muted);font-size:0.85rem;padding:1rem 0;text-align:center}.pos{color:#5cb85c}.neg{color:#d9534f}</style></head>
 <body>
-<header>
-  <span class="logo">⬡ Stockyard</span>
-  <span style="color:var(--muted);">/</span>
-  <span style="color:var(--cream);font-weight:600;">Grubstake</span>
-  <span class="badge">v0.1.0</span>
-</header>
+<header><span class="logo">&#x2B21; Stockyard</span><span style="color:var(--muted)">/</span><span style="color:var(--cream);font-weight:600">Grubstake</span><span class="badge">Finance</span></header>
 <main>
-  <div class="hero">
-    <h1>Grubstake</h1>
-    <p>Personal finance tracker — import bank CSV, categorize transactions, visualize spending</p>
-  </div>
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-value" id="stat-items">—</div>
-      <div class="stat-label">Total Items</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">9320</div>
-      <div class="stat-label">Port</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value" id="stat-tier">—</div>
-      <div class="stat-label">Tier</div>
-    </div>
-  </div>
-  <div class="card">
-    <h2>Tier &amp; Limits</h2>
-    <div class="tier-box">
-      <div class="tier">
-        <div class="tier-name">Free</div>
-        <div class="tier-desc">2 accounts, 500 transactions</div>
-        <div class="tier-price">$0/mo</div>
-      </div>
-      <div class="tier pro">
-        <div class="tier-name">Pro</div>
-        <div class="tier-desc">Unlimited accounts and transactions</div>
-        <div class="tier-price">$2.99/mo</div>
-      </div>
-    </div>
-  </div>
-  <div class="card">
-    <h2>API Endpoints</h2>
-    <table class="endpoint-table">
-      <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td class="method">GET</td><td>/health</td><td>Health check</td></tr>
-        <tr><td class="method">GET</td><td>/api/version</td><td>Version info</td></tr>
-        <tr><td class="method">GET</td><td>/api/limits</td><td>Current tier limits</td></tr>
-        <tr><td class="method">GET</td><td>/api/items</td><td>List items</td></tr>
-        <tr><td class="method">POST</td><td>/api/items</td><td>Create item</td></tr>
-        <tr><td class="method">GET</td><td>/api/items/{id}</td><td>Get item</td></tr>
-        <tr><td class="method">PUT</td><td>/api/items/{id}</td><td>Update item</td></tr>
-        <tr><td class="method">DELETE</td><td>/api/items/{id}</td><td>Delete item</td></tr>
-      </tbody>
-    </table>
-  </div>
+<div class="stats"><div class="stat"><div class="stat-value" id="s1">$0</div><div class="stat-label">Net Worth</div></div><div class="stat"><div class="stat-value" id="s2">0</div><div class="stat-label">Accounts</div></div><div class="stat"><div class="stat-value" id="s3">FREE</div><div class="stat-label">Tier</div></div></div>
+<div class="grid">
+<div class="card"><h2>New Account</h2>
+<div class="form-row"><input id="f-aname" placeholder="Account name"><select id="f-akind"><option value="checking">Checking</option><option value="savings">Savings</option><option value="credit">Credit</option><option value="investment">Investment</option><option value="cash">Cash</option></select></div>
+<div class="form-row"><input id="f-abal" type="number" placeholder="Opening balance ($)" step="0.01"><button class="btn btn-sm" onclick="addAccount()">Create</button></div>
+<div id="account-list" style="margin-top:1rem"><div class="empty">No accounts</div></div></div>
+<div class="card"><h2>Add Transaction</h2>
+<div class="form-row"><select id="t-acct"><option value="">-- Account --</option></select><input id="t-date" type="date"></div>
+<div class="form-row"><input id="t-amt" type="number" placeholder="Amount ($, negative = expense)" step="0.01"><select id="t-cat"><option>other</option><option>income</option><option>food</option><option>housing</option><option>transport</option><option>health</option><option>entertainment</option><option>utilities</option><option>savings</option><option>tax</option></select></div>
+<div class="form-row"><input id="t-desc" placeholder="Description"><button class="btn btn-sm" onclick="addTx()">Add</button></div></div>
+</div>
+<div class="card full"><h2>Transactions <select id="tx-filter" onchange="loadTx()" style="flex:0;width:auto;margin-left:0.5rem"><option value="">All Accounts</option></select></h2>
+<div id="tx-list"><div class="empty">No transactions</div></div></div>
 </main>
-<footer>
-  <a href="https://stockyard.dev">stockyard.dev</a> &mdash; Creator & Small Business &mdash; Apache 2.0
-</footer>
 <script>
-fetch('/api/limits').then(r=>r.json()).then(d=>{
-  document.getElementById('stat-tier').textContent = d.tier.toUpperCase();
-});
-fetch('/api/items').then(r=>r.json()).then(d=>{
-  document.getElementById('stat-items').textContent = Array.isArray(d) ? d.length : '0';
-});
-</script>
-</body>
-</html>`)
+var accts=[];
+function load(){fetch('/api/stats').then(function(r){return r.json()}).then(function(d){document.getElementById('s1').textContent='$'+((d.total_balance_cents||0)/100).toFixed(2)})}
+function loadAccounts(){fetch('/api/accounts').then(function(r){return r.json()}).then(function(list){accts=list;document.getElementById('s2').textContent=list.length;var sel=document.getElementById('t-acct');var fil=document.getElementById('tx-filter');sel.innerHTML='<option value="">-- Account --</option>';fil.innerHTML='<option value="">All Accounts</option>';list.forEach(function(a){sel.innerHTML+='<option value="'+a.id+'">'+a.name+'</option>';fil.innerHTML+='<option value="'+a.id+'">'+a.name+'</option>'});var el=document.getElementById('account-list');el.innerHTML=list.length?list.map(function(a){var cls=a.balance_cents>=0?'pos':'neg';return'<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--border)"><span>'+a.name+' <span style="color:var(--muted);font-size:0.75rem">('+a.kind+')</span></span><span class="'+cls+'">$'+(a.balance_cents/100).toFixed(2)+' <button class="btn btn-sm btn-danger" onclick="delAccount('+a.id+')">x</button></span></div>'}).join(''):'<div class="empty">No accounts</div>'})}
+function loadTx(){var aid=document.getElementById('tx-filter').value;fetch('/api/transactions'+(aid?'?account_id='+aid:'')).then(function(r){return r.json()}).then(function(list){var el=document.getElementById('tx-list');el.innerHTML=list.length?'<table><thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Description</th><th>Amount</th><th></th></tr></thead><tbody>'+list.map(function(t){var cls=t.amount_cents>=0?'pos':'neg';return'<tr><td>'+t.tx_date+'</td><td>'+t.account_name+'</td><td>'+t.category+'</td><td>'+t.description+'</td><td class="'+cls+'">$'+(t.amount_cents/100).toFixed(2)+'</td><td><button class="btn btn-sm btn-danger" onclick="delTx('+t.id+')">x</button></td></tr>'}).join('')+"</tbody></table>":'<div class="empty">No transactions</div>'})}
+function addAccount(){var d={name:document.getElementById('f-aname').value.trim(),kind:document.getElementById('f-akind').value,balance_cents:Math.round(parseFloat(document.getElementById('f-abal').value||0)*100)};if(!d.name)return;fetch('/api/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(){document.getElementById('f-aname').value='';document.getElementById('f-abal').value='';loadAccounts();load()})}
+function delAccount(id){fetch('/api/accounts/'+id,{method:'DELETE'}).then(function(){loadAccounts();loadTx();load()})}
+function addTx(){var d={account_id:parseInt(document.getElementById('t-acct').value)||0,amount_cents:Math.round(parseFloat(document.getElementById('t-amt').value||0)*100),category:document.getElementById('t-cat').value,description:document.getElementById('t-desc').value.trim(),tx_date:document.getElementById('t-date').value};if(!d.account_id||!d.amount_cents||!d.tx_date)return;fetch('/api/transactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(){document.getElementById('t-amt').value='';document.getElementById('t-desc').value='';loadTx();loadAccounts();load()})}
+function delTx(id){fetch('/api/transactions/'+id,{method:'DELETE'}).then(function(){loadTx();loadAccounts();load()})}
+load();loadAccounts();loadTx();
+</script></body></html>`)

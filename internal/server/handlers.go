@@ -1,60 +1,10 @@
 package server
-
-import (
-	"encoding/json"
-	"net/http"
-	"strconv"
-)
-
-type Item struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"created_at"`
-}
-
-func (s *Server) handleListItems(w http.ResponseWriter, r *http.Request) {
-	// List items — tool-specific query would go here
-	writeJSON(w, http.StatusOK, []Item{})
-}
-
-func (s *Server) handleCreateItem(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Name string `json:"name"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request")
-		return
-	}
-	if req.Name == "" {
-		writeError(w, http.StatusBadRequest, "name required")
-		return
-	}
-	writeJSON(w, http.StatusCreated, map[string]string{"status": "created", "name": req.Name})
-}
-
-func (s *Server) handleGetItem(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid id")
-		return
-	}
-	writeJSON(w, http.StatusOK, Item{ID: id})
-}
-
-func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
-}
-
-func (s *Server) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
-}
-
-func (s *Server) handleUI(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html")
-	w.Write(dashboardHTML)
-}
+import("encoding/json";"net/http";"strconv";"github.com/stockyard-dev/stockyard-grubstake/internal/store")
+func(s *Server)handleListAccounts(w http.ResponseWriter,r *http.Request){list,_:=s.db.ListAccounts();if list==nil{list=[]store.Account{}};writeJSON(w,200,list)}
+func(s *Server)handleCreateAccount(w http.ResponseWriter,r *http.Request){var a store.Account;json.NewDecoder(r.Body).Decode(&a);if a.Name==""{writeError(w,400,"name required");return};if err:=s.db.CreateAccount(&a);err!=nil{writeError(w,500,err.Error());return};writeJSON(w,201,a)}
+func(s *Server)handleDeleteAccount(w http.ResponseWriter,r *http.Request){id,_:=strconv.ParseInt(r.PathValue("id"),10,64);s.db.DeleteAccount(id);writeJSON(w,200,map[string]string{"status":"deleted"})}
+func(s *Server)handleListTransactions(w http.ResponseWriter,r *http.Request){aid,_:=strconv.ParseInt(r.URL.Query().Get("account_id"),10,64);limit,_:=strconv.Atoi(r.URL.Query().Get("limit"));list,_:=s.db.ListTransactions(aid,limit);if list==nil{list=[]store.Transaction{}};writeJSON(w,200,list)}
+func(s *Server)handleAddTransaction(w http.ResponseWriter,r *http.Request){var t store.Transaction;json.NewDecoder(r.Body).Decode(&t);if t.AccountID==0||t.AmountCents==0||t.TxDate==""{writeError(w,400,"account_id, amount_cents, tx_date required");return};if t.Category==""{t.Category="other"};if err:=s.db.AddTransaction(&t);err!=nil{writeError(w,500,err.Error());return};writeJSON(w,201,t)}
+func(s *Server)handleDeleteTransaction(w http.ResponseWriter,r *http.Request){id,_:=strconv.ParseInt(r.PathValue("id"),10,64);s.db.DeleteTransaction(id);writeJSON(w,200,map[string]string{"status":"deleted"})}
+func(s *Server)handleCategorySummary(w http.ResponseWriter,r *http.Request){aid,_:=strconv.ParseInt(r.URL.Query().Get("account_id"),10,64);list,_:=s.db.CategorySummary(aid);if list==nil{list=[]map[string]interface{}{}};writeJSON(w,200,list)}
+func(s *Server)handleStats(w http.ResponseWriter,r *http.Request){bal,_:=s.db.TotalBalance();writeJSON(w,200,map[string]interface{}{"total_balance_cents":bal})}
