@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  grubstake:
+    build: .
+    ports:
+      - "9320:9320"
+    environment:
+      - PORT=9320
+      - DATA_DIR=/data
+      - GRUBSTAKE_LICENSE_KEY=
+    volumes:
+      - grubstake_data:/data
+    restart: unless-stopped
+volumes:
+  grubstake_data:
