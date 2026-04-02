@@ -1,15 +1,25 @@
 package store
-import("database/sql";"fmt";"os";"path/filepath";"time";_ "modernc.org/sqlite")
-type DB struct{*sql.DB}
-type Account struct{ID int64 `json:"id"`;Name string `json:"name"`;Kind string `json:"kind"`;BalanceCents int64 `json:"balance_cents"`;Currency string `json:"currency"`;CreatedAt time.Time `json:"created_at"`}
-type Transaction struct{ID int64 `json:"id"`;AccountID int64 `json:"account_id"`;AccountName string `json:"account_name,omitempty"`;AmountCents int64 `json:"amount_cents"`;Category string `json:"category"`;Description string `json:"description"`;TxDate string `json:"tx_date"`;CreatedAt time.Time `json:"created_at"`}
-func Open(dataDir string)(*DB,error){if err:=os.MkdirAll(dataDir,0755);err!=nil{return nil,fmt.Errorf("mkdir: %w",err)};dsn:=filepath.Join(dataDir,"grubstake.db")+"?_journal_mode=WAL&_busy_timeout=5000";db,err:=sql.Open("sqlite",dsn);if err!=nil{return nil,fmt.Errorf("open: %w",err)};db.SetMaxOpenConns(1);if err:=migrate(db);err!=nil{return nil,fmt.Errorf("migrate: %w",err)};return &DB{db},nil}
-func migrate(db *sql.DB)error{_,err:=db.Exec(`CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,kind TEXT DEFAULT 'checking',balance_cents INTEGER DEFAULT 0,currency TEXT DEFAULT 'USD',created_at DATETIME DEFAULT CURRENT_TIMESTAMP);CREATE TABLE IF NOT EXISTS transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,account_id INTEGER NOT NULL,amount_cents INTEGER NOT NULL,category TEXT DEFAULT 'other',description TEXT DEFAULT '',tx_date TEXT NOT NULL,created_at DATETIME DEFAULT CURRENT_TIMESTAMP);CREATE INDEX IF NOT EXISTS tx_account ON transactions(account_id,tx_date DESC);`);return err}
-func(db *DB)ListAccounts()([]Account,error){rows,err:=db.Query(`SELECT id,name,kind,balance_cents,currency,created_at FROM accounts ORDER BY name`);if err!=nil{return nil,err};defer rows.Close();var out[]Account;for rows.Next(){var a Account;rows.Scan(&a.ID,&a.Name,&a.Kind,&a.BalanceCents,&a.Currency,&a.CreatedAt);out=append(out,a)};return out,nil}
-func(db *DB)CreateAccount(a *Account)error{if a.Kind==""{a.Kind="checking"};if a.Currency==""{a.Currency="USD"};res,err:=db.Exec(`INSERT INTO accounts(name,kind,balance_cents,currency)VALUES(?,?,?,?)`,a.Name,a.Kind,a.BalanceCents,a.Currency);if err!=nil{return err};a.ID,_=res.LastInsertId();return nil}
-func(db *DB)DeleteAccount(id int64)error{_,err:=db.Exec(`DELETE FROM accounts WHERE id=?`,id);_,_=db.Exec(`DELETE FROM transactions WHERE account_id=?`,id);return err}
-func(db *DB)ListTransactions(accountID int64,limit int)([]Transaction,error){if limit==0{limit=100};q:=`SELECT t.id,t.account_id,COALESCE(a.name,''),t.amount_cents,t.category,t.description,t.tx_date,t.created_at FROM transactions t LEFT JOIN accounts a ON a.id=t.account_id`;var rows *sql.Rows;var err error;if accountID>0{rows,err=db.Query(q+fmt.Sprintf(` WHERE t.account_id=? ORDER BY t.tx_date DESC LIMIT %d`,limit),accountID)}else{rows,err=db.Query(q+fmt.Sprintf(` ORDER BY t.tx_date DESC LIMIT %d`,limit))};if err!=nil{return nil,err};defer rows.Close();var out[]Transaction;for rows.Next(){var t Transaction;rows.Scan(&t.ID,&t.AccountID,&t.AccountName,&t.AmountCents,&t.Category,&t.Description,&t.TxDate,&t.CreatedAt);out=append(out,t)};return out,nil}
-func(db *DB)AddTransaction(t *Transaction)error{res,err:=db.Exec(`INSERT INTO transactions(account_id,amount_cents,category,description,tx_date)VALUES(?,?,?,?,?)`,t.AccountID,t.AmountCents,t.Category,t.Description,t.TxDate);if err!=nil{return err};t.ID,_=res.LastInsertId();db.Exec(`UPDATE accounts SET balance_cents=balance_cents+? WHERE id=?`,t.AmountCents,t.AccountID);return nil}
-func(db *DB)DeleteTransaction(id int64)error{var acct,amt int64;db.QueryRow(`SELECT account_id,amount_cents FROM transactions WHERE id=?`,id).Scan(&acct,&amt);_,err:=db.Exec(`DELETE FROM transactions WHERE id=?`,id);if acct>0{db.Exec(`UPDATE accounts SET balance_cents=balance_cents-? WHERE id=?`,amt,acct)};return err}
-func(db *DB)CategorySummary(accountID int64)([]map[string]interface{},error){var rows *sql.Rows;var err error;if accountID>0{rows,err=db.Query(`SELECT category,SUM(amount_cents),COUNT(*) FROM transactions WHERE account_id=? GROUP BY category ORDER BY SUM(amount_cents)`,accountID)}else{rows,err=db.Query(`SELECT category,SUM(amount_cents),COUNT(*) FROM transactions GROUP BY category ORDER BY SUM(amount_cents)`)};if err!=nil{return nil,err};defer rows.Close();var out[]map[string]interface{};for rows.Next(){var cat string;var sum int64;var cnt int;rows.Scan(&cat,&sum,&cnt);out=append(out,map[string]interface{}{"category":cat,"total_cents":sum,"count":cnt})};return out,nil}
-func(db *DB)TotalBalance()(int64,error){var n int64;db.QueryRow(`SELECT COALESCE(SUM(balance_cents),0) FROM accounts`).Scan(&n);return n,nil}
+import ("database/sql";"fmt";"os";"path/filepath";"time";_ "modernc.org/sqlite")
+type DB struct{db *sql.DB}
+type Campaign struct{
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Description string `json:"description"`
+	GoalCents int `json:"goal_cents"`
+	RaisedCents int `json:"raised_cents"`
+	BackerCount int `json:"backer_count"`
+	Status string `json:"status"`
+	EndsAt string `json:"ends_at"`
+	CreatedAt string `json:"created_at"`
+}
+func Open(d string)(*DB,error){if err:=os.MkdirAll(d,0755);err!=nil{return nil,err};db,err:=sql.Open("sqlite",filepath.Join(d,"grubstake.db")+"?_journal_mode=WAL&_busy_timeout=5000");if err!=nil{return nil,err}
+db.Exec(`CREATE TABLE IF NOT EXISTS campaigns(id TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT DEFAULT '',goal_cents INTEGER DEFAULT 0,raised_cents INTEGER DEFAULT 0,backer_count INTEGER DEFAULT 0,status TEXT DEFAULT 'active',ends_at TEXT DEFAULT '',created_at TEXT DEFAULT(datetime('now')))`)
+return &DB{db:db},nil}
+func(d *DB)Close()error{return d.db.Close()}
+func genID()string{return fmt.Sprintf("%d",time.Now().UnixNano())}
+func now()string{return time.Now().UTC().Format(time.RFC3339)}
+func(d *DB)Create(e *Campaign)error{e.ID=genID();e.CreatedAt=now();_,err:=d.db.Exec(`INSERT INTO campaigns(id,name,description,goal_cents,raised_cents,backer_count,status,ends_at,created_at)VALUES(?,?,?,?,?,?,?,?,?)`,e.ID,e.Name,e.Description,e.GoalCents,e.RaisedCents,e.BackerCount,e.Status,e.EndsAt,e.CreatedAt);return err}
+func(d *DB)Get(id string)*Campaign{var e Campaign;if d.db.QueryRow(`SELECT id,name,description,goal_cents,raised_cents,backer_count,status,ends_at,created_at FROM campaigns WHERE id=?`,id).Scan(&e.ID,&e.Name,&e.Description,&e.GoalCents,&e.RaisedCents,&e.BackerCount,&e.Status,&e.EndsAt,&e.CreatedAt)!=nil{return nil};return &e}
+func(d *DB)List()[]Campaign{rows,_:=d.db.Query(`SELECT id,name,description,goal_cents,raised_cents,backer_count,status,ends_at,created_at FROM campaigns ORDER BY created_at DESC`);if rows==nil{return nil};defer rows.Close();var o []Campaign;for rows.Next(){var e Campaign;rows.Scan(&e.ID,&e.Name,&e.Description,&e.GoalCents,&e.RaisedCents,&e.BackerCount,&e.Status,&e.EndsAt,&e.CreatedAt);o=append(o,e)};return o}
+func(d *DB)Delete(id string)error{_,err:=d.db.Exec(`DELETE FROM campaigns WHERE id=?`,id);return err}
+func(d *DB)Count()int{var n int;d.db.QueryRow(`SELECT COUNT(*) FROM campaigns`).Scan(&n);return n}
